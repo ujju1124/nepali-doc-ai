@@ -2,6 +2,12 @@
 
 An intelligent document analysis tool for Nepali documents. Upload a photo of any Nepali document and instantly get plain-language summaries in both English and Nepali, plus the ability to ask questions about the document content.
 
+## Live Demo
+
+- **Frontend**: https://nepali-doc-ai.vercel.app/
+- **Backend API**: https://ujju33-nepali-doc-ai-backend.hf.space
+- **GitHub**: https://github.com/ujju1124/nepali-doc-ai
+
 ## Features
 
 - **OCR Extraction**: Extract text from Nepali documents using EasyOCR
