@@ -1,0 +1,803 @@
+/* 
+ * Nepal Doc AI - Civic Tool Redesign
+ * Design: A document desk — official, warm, purposeful
+ * Like sitting across from a helpful government clerk who speaks plain language
+ */
+
+/* CSS Variables - Document Desk Aesthetic */
+:root {
+  --navy: #1B2B4B;
+  --crimson: #C41E3A;
+  --parchment: #F5F0E8;
+  --paper: #FDFAF5;
+  --ink: #2C2C2C;
+  --ink-light: #5C5C5C;
+  --stamp-red: #B01020;
+  --border: #D4C9B8;
+  --shadow: 0 2px 4px rgba(44, 44, 44, 0.1);
+}
+
+/* Reset & Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--paper);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.nepali {
+  font-family: 'Tiro Devanagari Hindi', serif;
+}
+
+/* Layout */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+  width: 100%;
+}
+
+/* Header - Document Official Style */
+.app-header {
+  background-color: var(--navy);
+  color: white;
+  padding: 40px 0 37px 0;
+  border-bottom: 3px solid var(--crimson);
+  position: relative;
+}
+
+.app-title {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.app-subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 400;
+}
+
+/* Main Content */
+.app-main {
+  flex: 1;
+  padding: 56px 0;
+}
+
+/* Upload Section */
+.uploader-section {
+  margin-bottom: 56px;
+}
+
+.upload-zone {
+  border: 2px dashed var(--crimson);
+  background: var(--parchment);
+  padding: 72px 40px;
+  text-align: center;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Watermark Nepal emblem effect */
+.upload-zone::before {
+  content: '🇳🇵';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 120px;
+  opacity: 0.03;
+  pointer-events: none;
+}
+
+.upload-zone:hover {
+  border-color: var(--stamp-red);
+  background-color: #F0EBE3;
+}
+
+.upload-zone.drag-active {
+  border-color: var(--stamp-red);
+  background-color: #EDE8E0;
+  transform: scale(1.005);
+}
+
+.upload-zone.has-file {
+  cursor: default;
+  border-style: solid;
+  border-color: var(--border);
+}
+
+.upload-icon {
+  color: var(--crimson);
+  margin-bottom: 20px;
+}
+
+.file-icon {
+  color: var(--ink);
+  margin-bottom: 20px;
+}
+
+.upload-title {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+
+.upload-description {
+  color: var(--ink-light);
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+.upload-formats {
+  font-size: 13px;
+  color: var(--ink-light);
+  margin-bottom: 28px;
+}
+
+.file-input {
+  display: none;
+}
+
+.file-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.file-size {
+  font-size: 13px;
+  color: var(--ink-light);
+  margin-bottom: 28px;
+}
+
+/* Buttons - Official Document Style */
+.btn-upload,
+.btn-extract,
+.btn-send,
+.btn-reset {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px 32px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+}
+
+.btn-upload {
+  background-color: var(--crimson);
+  color: white;
+  display: inline-block;
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.btn-upload:hover {
+  background-color: var(--stamp-red);
+}
+
+.btn-extract {
+  background-color: var(--navy);
+  color: white;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.btn-extract:hover:not(:disabled) {
+  background-color: var(--stamp-red);
+}
+
+.btn-extract:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-change {
+  background-color: transparent;
+  color: var(--ink-light);
+  border: 1px solid var(--border);
+  padding: 10px 24px;
+  font-size: 13px;
+  border-radius: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-change:hover:not(:disabled) {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.btn-send {
+  background-color: var(--crimson);
+  color: white;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+}
+
+.btn-send:hover:not(:disabled) {
+  background-color: var(--stamp-red);
+}
+
+.btn-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-reset {
+  background-color: transparent;
+  color: var(--ink);
+  border: 2px solid var(--border);
+  margin: 40px auto;
+  display: block;
+}
+
+.btn-reset:hover {
+  border-color: var(--ink);
+  background-color: var(--parchment);
+}
+
+/* Error Messages */
+.error-message {
+  margin-top: 20px;
+  padding: 16px 20px;
+  background-color: #FEE;
+  border: 1px solid var(--stamp-red);
+  border-left: 3px solid var(--stamp-red);
+  border-radius: 2px;
+}
+
+.error-message p {
+  color: var(--stamp-red);
+  font-size: 14px;
+}
+
+/* Document Layout - Two Column */
+.document-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 56px;
+}
+
+@media (max-width: 768px) {
+  .document-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Document Viewer - Physical Document Style */
+.document-viewer {
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.section-title {
+  font-family: 'Libre Baskerville', serif;
+  font-style: italic;
+  background-color: var(--navy);
+  color: white;
+  padding: 16px 24px;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+
+.document-preview {
+  padding: 32px;
+  background-color: var(--parchment);
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.document-image {
+  max-width: 100%;
+  max-height: 600px;
+  box-shadow: 0 4px 12px rgba(44, 44, 44, 0.15);
+  border: 1px solid var(--border);
+  border-radius: 1px;
+}
+
+.pdf-placeholder {
+  text-align: center;
+  color: var(--ink-light);
+}
+
+.pdf-placeholder svg {
+  margin-bottom: 16px;
+}
+
+.pdf-name {
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.pdf-note {
+  font-size: 13px;
+}
+
+/* Results Panel */
+.results-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* OCR Stats - Simplified */
+.ocr-stats {
+  display: flex;
+  gap: 28px;
+  padding: 20px 24px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--ink-light);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+  font-family: 'Libre Baskerville', serif;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* Quality pill */
+.stat-value.quality-excellent,
+.stat-value.quality-good {
+  display: inline-block;
+  background-color: #E8F5E9;
+  color: #2E7D32;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.stat-value.quality-fair {
+  display: inline-block;
+  background-color: #FFF3E0;
+  color: #E65100;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+/* Extracted Text Section - Official Document Feel */
+.extracted-text-section {
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.extracted-text-section .section-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--ink-light);
+  background-color: transparent;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Libre Baskerville', serif;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.extracted-text-box {
+  padding: 24px;
+  background-color: var(--parchment);
+  color: var(--ink);
+  font-family: 'Tiro Devanagari Hindi', serif;
+  font-size: 15px;
+  line-height: 1.8;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border-left: 3px solid var(--crimson);
+  margin: 0;
+}
+
+/* Summary Section - "What This Document Says" */
+.summary-section {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.summary-section .section-title {
+  font-family: 'Libre Baskerville', serif;
+  font-style: italic;
+  font-size: 20px;
+  color: var(--ink);
+  background-color: transparent;
+  border-bottom: 1px solid var(--border);
+  padding: 20px 24px;
+}
+
+/* Hierarchical summaries - not equal cards */
+.summary-cards {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .summary-cards {
+    flex-direction: row;
+    gap: 32px;
+  }
+}
+
+.summary-card {
+  flex: 1;
+  border-left: 3px solid var(--border);
+  padding-left: 20px;
+}
+
+.summary-card-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-light);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-family: 'Libre Baskerville', serif;
+}
+
+.summary-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink);
+  font-family: 'Libre Baskerville', serif;
+}
+
+.summary-text.nepali {
+  font-family: 'Tiro Devanagari Hindi', serif;
+  font-size: 16px;
+  color: var(--ink-light);
+}
+
+/* Key Facts - Blockquote Style */
+.key-facts-section {
+  padding: 28px;
+  border-top: 1px solid var(--border);
+}
+
+.key-facts-title {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.key-facts-list {
+  list-style: none;
+  counter-reset: fact-counter;
+}
+
+.key-fact-item {
+  counter-increment: fact-counter;
+  padding-left: 20px;
+  margin-bottom: 16px;
+  position: relative;
+  border-left: 3px solid var(--crimson);
+  padding: 12px 0 12px 20px;
+  color: var(--ink);
+}
+
+.key-fact-item::before {
+  content: counter(fact-counter) ".";
+  position: absolute;
+  left: -32px;
+  top: 12px;
+  color: var(--ink-light);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Libre Baskerville', serif;
+}
+
+/* Chat Section - "Ask About This Document" */
+.chat-section {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 40px;
+}
+
+.chat-section .section-title {
+  font-family: 'Libre Baskerville', serif;
+  font-style: italic;
+  font-size: 20px;
+  color: var(--ink);
+  background-color: transparent;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-container {
+  padding: 28px;
+}
+
+.chat-messages {
+  min-height: 200px;
+  max-height: 500px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+
+.chat-empty {
+  text-align: center;
+  color: var(--ink-light);
+  padding: 40px 20px;
+}
+
+.chat-suggestions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.suggestion-btn {
+  padding: 10px 16px;
+  background-color: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.suggestion-btn:hover {
+  border-color: var(--crimson);
+  background-color: white;
+}
+
+/* Messages - Chat Bubble Style */
+.message {
+  margin-bottom: 16px;
+  display: flex;
+}
+
+.message.user {
+  justify-content: flex-end;
+}
+
+.message.assistant {
+  justify-content: flex-start;
+}
+
+.message-content {
+  max-width: 70%;
+  padding: 14px 18px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* User messages - navy bubble */
+.message.user .message-content {
+  background-color: var(--navy);
+  color: white;
+  border-radius: 4px 4px 0 4px;
+}
+
+/* AI messages - typed response on paper */
+.message.assistant .message-content {
+  background-color: var(--parchment);
+  border-left: 3px solid var(--crimson);
+  color: var(--ink);
+  border-radius: 0;
+}
+
+/* Typing Indicator */
+.typing {
+  display: flex;
+  gap: 6px;
+  padding: 16px;
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ink-light);
+  border-radius: 50%;
+  animation: typing-bounce 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes typing-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* Chat Input - Official Form Style */
+.chat-input-container {
+  display: flex;
+  gap: 10px;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+  background-color: var(--parchment);
+  transition: border-color 0.2s ease;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: var(--crimson);
+  background-color: white;
+}
+
+.chat-input:disabled {
+  background-color: #F5F5F5;
+  cursor: not-allowed;
+}
+
+.chat-input::placeholder {
+  color: var(--ink-light);
+  font-style: italic;
+}
+
+.chat-error {
+  padding: 14px 16px;
+  background-color: #FEE;
+  border-left: 3px solid var(--stamp-red);
+  border-radius: 2px;
+  margin-bottom: 16px;
+  color: var(--stamp-red);
+  font-size: 14px;
+}
+
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--ink-light);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--crimson);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Footer - Civic Trust */
+.app-footer {
+  background-color: var(--navy);
+  color: rgba(255, 255, 255, 0.75);
+  padding: 28px 0;
+  text-align: center;
+  font-size: 13px;
+  margin-top: auto;
+  border-top: 3px solid var(--crimson);
+}
+
+.app-footer p {
+  margin-bottom: 6px;
+}
+
+/* Reset Section */
+.reset-section {
+  text-align: center;
+  padding: 40px 0;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 20px;
+  }
+  
+  .app-header {
+    padding: 32px 0 29px 0;
+  }
+  
+  .app-title {
+    font-size: 28px;
+  }
+  
+  .app-main {
+    padding: 40px 0;
+  }
+  
+  .upload-zone {
+    padding: 56px 24px;
+  }
+  
+  .summary-cards {
+    flex-direction: column;
+  }
+  
+  .message-content {
+    max-width: 85%;
+  }
+}

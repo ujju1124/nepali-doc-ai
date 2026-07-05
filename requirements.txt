@@ -1,0 +1,22 @@
+# Core ML/AI dependencies
+torch
+torchvision
+easyocr
+opencv-python-headless
+scipy
+scikit-image
+
+# Image processing
+Pillow
+pdf2image
+
+# Web framework
+streamlit
+
+# LLM API
+groq
+
+# Utilities
+python-dotenv
+numpy
+requests
