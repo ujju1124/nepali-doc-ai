@@ -39,24 +39,25 @@ class LLMProvider:
             return None
         
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            # Use v1 API with simpler format
+            url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
             headers = {"Content-Type": "application/json"}
             
-            # Convert messages to Gemini format
-            parts = []
+            # Combine all messages into a single prompt
+            prompt = ""
             for msg in messages:
                 role = msg['role']
                 content = msg['content']
                 if role == 'system':
-                    parts.append({"text": f"System: {content}\n\n"})
+                    prompt += f"{content}\n\n"
                 elif role == 'user':
-                    parts.append({"text": content})
+                    prompt += f"User: {content}\n\n"
                 elif role == 'assistant':
-                    parts.append({"text": content})
+                    prompt += f"Assistant: {content}\n\n"
             
             data = {
                 "contents": [{
-                    "parts": parts
+                    "parts": [{"text": prompt}]
                 }],
                 "generationConfig": {
                     "maxOutputTokens": max_tokens,
@@ -65,6 +66,11 @@ class LLMProvider:
             }
             
             response = requests.post(url, headers=headers, json=data, timeout=30)
+            
+            # Log more details on error
+            if response.status_code != 200:
+                logger.error(f"Google Gemini error: {response.status_code} - {response.text[:200]}")
+            
             response.raise_for_status()
             result = response.json()
             
