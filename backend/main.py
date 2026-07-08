@@ -198,18 +198,30 @@ async def chat_about_document(request: ChatRequest):
 @app.get("/health")
 async def health_check():
     """
-    Health check endpoint for deployment monitoring
+    Health check endpoint for deployment monitoring.
+    Shows which LLM providers are configured.
     """
     try:
-        # Check if Groq API key is configured
+        # Check all LLM provider API keys
         groq_key = os.getenv('GROQ_API_KEY')
-        groq_configured = groq_key is not None and groq_key != 'your_groq_key_here'
+        together_key = os.getenv('TOGETHER_API_KEY')
+        hf_key = os.getenv('HUGGINGFACE_API_KEY')
+        
+        groq_configured = groq_key is not None and groq_key != 'your_groq_key_here' and groq_key != ''
+        together_configured = together_key is not None and together_key != '' 
+        hf_configured = hf_key is not None and hf_key != ''
+        
+        # Check if at least one provider is configured
+        any_provider = groq_configured or together_configured or hf_configured
         
         return {
-            "status": "healthy",
+            "status": "healthy" if any_provider else "degraded",
             "groq_configured": groq_configured,
+            "together_configured": together_configured,
+            "huggingface_configured": hf_configured,
             "ocr_ready": True,
-            "api_version": "1.0.0"
+            "api_version": "1.0.0",
+            "note": "At least one LLM provider required for summaries" if not any_provider else None
         }
     except Exception as e:
         return {

@@ -7,8 +7,9 @@ python-multipart==0.0.12
 python-dotenv==1.2.2
 Pillow>=11.0.0
 pdf2image>=1.17.0
+requests>=2.31.0
 
-# AI/ML - Groq API
+# AI/ML - Multiple LLM providers (at least one API key required)
 groq>=0.4.2
 
 # Note: For HF Spaces deployment, torch CPU-only is sufficient

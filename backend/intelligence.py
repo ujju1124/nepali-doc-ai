@@ -1,29 +1,156 @@
 """
-Intelligence module for document summarization and Q&A using Groq.
-Handles English/Nepali summaries and context-aware question answering.
+Intelligence module for document summarization and Q&A with multiple free LLM providers.
+Supports automatic fallback: Groq -> Together AI -> Hugging Face
 """
 
 from groq import Groq
 import os
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 import logging
+import requests
 
 # Initialize logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def get_groq_client():
-    """Initialize and return Groq client."""
-    api_key = os.getenv('GROQ_API_KEY')
-    if not api_key:
-        raise ValueError("GROQ_API_KEY not found in environment variables")
-    return Groq(api_key=api_key)
+class LLMProvider:
+    """Base class for LLM providers with fallback support."""
+    
+    @staticmethod
+    def get_groq_client() -> Optional[Groq]:
+        """Initialize Groq client (primary provider)."""
+        api_key = os.getenv('GROQ_API_KEY')
+        if not api_key:
+            logger.warning("GROQ_API_KEY not found")
+            return None
+        try:
+            return Groq(api_key=api_key)
+        except Exception as e:
+            logger.error(f"Failed to initialize Groq: {e}")
+            return None
+    
+    @staticmethod
+    def call_together_api(messages: List[Dict], max_tokens: int = 1000) -> Optional[str]:
+        """Call Together AI API (fallback provider #1 - Free tier available)."""
+        api_key = os.getenv('TOGETHER_API_KEY')
+        if not api_key:
+            logger.warning("TOGETHER_API_KEY not found")
+            return None
+        
+        try:
+            url = "https://api.together.xyz/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "model": "meta-llama/Llama-3-8b-chat-hf",  # Free model
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": 0.3
+            }
+            
+            response = requests.post(url, headers=headers, json=data, timeout=30)
+            response.raise_for_status()
+            result = response.json()
+            return result['choices'][0]['message']['content'].strip()
+            
+        except Exception as e:
+            logger.error(f"Together AI API failed: {e}")
+            return None
+    
+    @staticmethod
+    def call_huggingface_api(messages: List[Dict], max_tokens: int = 1000) -> Optional[str]:
+        """Call Hugging Face Inference API (fallback provider #2 - Free tier available)."""
+        api_key = os.getenv('HUGGINGFACE_API_KEY')
+        if not api_key:
+            logger.warning("HUGGINGFACE_API_KEY not found")
+            return None
+        
+        try:
+            url = "https://api-inference.huggingface.co/models/meta-llama/Llama-2-7b-chat-hf"
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            # Convert messages to prompt format
+            prompt = ""
+            for msg in messages:
+                role = msg['role']
+                content = msg['content']
+                if role == 'system':
+                    prompt += f"[INST] <<SYS>>\n{content}\n<</SYS>>\n\n"
+                elif role == 'user':
+                    prompt += f"{content} [/INST] "
+                elif role == 'assistant':
+                    prompt += f"{content} [INST] "
+            
+            data = {
+                "inputs": prompt,
+                "parameters": {
+                    "max_new_tokens": max_tokens,
+                    "temperature": 0.3,
+                    "return_full_text": False
+                }
+            }
+            
+            response = requests.post(url, headers=headers, json=data, timeout=30)
+            response.raise_for_status()
+            result = response.json()
+            
+            if isinstance(result, list) and len(result) > 0:
+                return result[0].get('generated_text', '').strip()
+            return None
+            
+        except Exception as e:
+            logger.error(f"Hugging Face API failed: {e}")
+            return None
+    
+    @staticmethod
+    def generate_completion(messages: List[Dict], max_tokens: int = 1000) -> Tuple[Optional[str], str]:
+        """
+        Try multiple providers in order: Groq -> Together AI -> Hugging Face.
+        Returns (response_text, provider_used).
+        """
+        # Try Groq first
+        client = LLMProvider.get_groq_client()
+        if client:
+            try:
+                response = client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=messages,
+                    temperature=0.3,
+                    max_tokens=max_tokens
+                )
+                content = response.choices[0].message.content.strip()
+                logger.info("✅ Used Groq API")
+                return content, "Groq"
+            except Exception as e:
+                logger.warning(f"Groq failed: {e}, trying fallback...")
+        
+        # Try Together AI
+        response = LLMProvider.call_together_api(messages, max_tokens)
+        if response:
+            logger.info("✅ Used Together AI (fallback)")
+            return response, "Together AI"
+        
+        # Try Hugging Face
+        response = LLMProvider.call_huggingface_api(messages, max_tokens)
+        if response:
+            logger.info("✅ Used Hugging Face (fallback)")
+            return response, "Hugging Face"
+        
+        # All providers failed
+        logger.error("❌ All LLM providers failed")
+        return None, "None"
 
 
 def generate_summary(extracted_text: str) -> Dict:
     """
     Generate English summary, Nepali summary, and key facts from document text.
+    Uses multiple LLM providers with automatic fallback.
     
     Args:
         extracted_text: Text extracted from the document
@@ -33,12 +160,11 @@ def generate_summary(extracted_text: str) -> Dict:
             - english_summary: 3-4 sentence summary in English
             - nepali_summary: 3-4 sentence summary in Nepali
             - key_facts: List of 3 key facts extracted
+            - provider: Which LLM provider was used
             - success: Boolean indicating if generation succeeded
             - error: Error message if failed
     """
     try:
-        client = get_groq_client()
-        
         system_prompt = """You are a helpful assistant that explains Nepali government documents in simple language. 
 Your task is to analyze the provided document text and create:
 1. A clear 3-4 sentence summary in English
@@ -69,18 +195,16 @@ KEY FACTS:
 2. [Second key fact]
 3. [Third key fact]"""
 
-        # Call Groq API
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.3,
-            max_tokens=1000
-        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
         
-        content = response.choices[0].message.content.strip()
+        # Try all providers with fallback
+        content, provider = LLMProvider.generate_completion(messages, max_tokens=1000)
+        
+        if not content:
+            raise Exception("All LLM providers failed. Please add at least one API key: GROQ_API_KEY, TOGETHER_API_KEY, or HUGGINGFACE_API_KEY")
         
         # Parse the response
         english_summary = ""
@@ -127,12 +251,13 @@ KEY FACTS:
         # Limit to 3 facts
         key_facts = key_facts[:3]
         
-        logger.info("Successfully generated document summary")
+        logger.info(f"Successfully generated document summary using {provider}")
         
         return {
             'english_summary': english_summary.strip(),
             'nepali_summary': nepali_summary.strip(),
             'key_facts': key_facts,
+            'provider': provider,
             'success': True,
             'error': None
         }
@@ -143,6 +268,7 @@ KEY FACTS:
             'english_summary': '',
             'nepali_summary': '',
             'key_facts': [],
+            'provider': 'None',
             'success': False,
             'error': f'Summary generation failed: {str(e)}'
         }
@@ -151,6 +277,7 @@ KEY FACTS:
 def answer_question(extracted_text: str, question: str, chat_history: List[Tuple[str, str]] = None) -> Dict:
     """
     Answer a question about the document using extracted text as context.
+    Uses multiple LLM providers with automatic fallback.
     
     Args:
         extracted_text: Text extracted from the document
@@ -160,12 +287,11 @@ def answer_question(extracted_text: str, question: str, chat_history: List[Tuple
     Returns:
         Dictionary containing:
             - answer: AI-generated answer
+            - provider: Which LLM provider was used
             - success: Boolean indicating if answer generation succeeded
             - error: Error message if failed
     """
     try:
-        client = get_groq_client()
-        
         system_prompt = """You are a helpful assistant that explains Nepali government documents in simple language. 
 
 IMPORTANT RULES:
@@ -198,20 +324,17 @@ Please answer questions based strictly on this document."""
         # Add current question
         messages.append({"role": "user", "content": question})
         
-        # Call Groq API
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=messages,
-            temperature=0.3,
-            max_tokens=500
-        )
+        # Try all providers with fallback
+        answer, provider = LLMProvider.generate_completion(messages, max_tokens=500)
         
-        answer = response.choices[0].message.content.strip()
+        if not answer:
+            raise Exception("All LLM providers failed. Please add at least one API key: GROQ_API_KEY, TOGETHER_API_KEY, or HUGGINGFACE_API_KEY")
         
-        logger.info(f"Successfully answered question: {question[:50]}...")
+        logger.info(f"Successfully answered question using {provider}: {question[:50]}...")
         
         return {
             'answer': answer,
+            'provider': provider,
             'success': True,
             'error': None
         }
@@ -220,6 +343,7 @@ Please answer questions based strictly on this document."""
         logger.error(f"Error answering question: {str(e)}")
         return {
             'answer': '',
+            'provider': 'None',
             'success': False,
             'error': f'Question answering failed: {str(e)}'
         }
