@@ -204,20 +204,20 @@ async def health_check():
     try:
         # Check all LLM provider API keys
         groq_key = os.getenv('GROQ_API_KEY')
-        together_key = os.getenv('TOGETHER_API_KEY')
+        google_key = os.getenv('GOOGLE_API_KEY')
         hf_key = os.getenv('HUGGINGFACE_API_KEY')
         
         groq_configured = groq_key is not None and groq_key != 'your_groq_key_here' and groq_key != ''
-        together_configured = together_key is not None and together_key != '' 
+        google_configured = google_key is not None and google_key != ''
         hf_configured = hf_key is not None and hf_key != ''
         
         # Check if at least one provider is configured
-        any_provider = groq_configured or together_configured or hf_configured
+        any_provider = groq_configured or google_configured or hf_configured
         
         return {
             "status": "healthy" if any_provider else "degraded",
             "groq_configured": groq_configured,
-            "together_configured": together_configured,
+            "google_configured": google_configured,
             "huggingface_configured": hf_configured,
             "ocr_ready": True,
             "api_version": "1.0.0",

@@ -1,6 +1,6 @@
 """
 Intelligence module for document summarization and Q&A with multiple free LLM providers.
-Supports automatic fallback: Groq -> Together AI -> Hugging Face
+Supports automatic fallback: Groq -> Google Gemini -> Hugging Face
 """
 
 from groq import Groq
@@ -31,33 +31,50 @@ class LLMProvider:
             return None
     
     @staticmethod
-    def call_together_api(messages: List[Dict], max_tokens: int = 1000) -> Optional[str]:
-        """Call Together AI API (fallback provider #1 - Free tier available)."""
-        api_key = os.getenv('TOGETHER_API_KEY')
+    def call_google_gemini(messages: List[Dict], max_tokens: int = 1000) -> Optional[str]:
+        """Call Google Gemini API (fallback provider #1 - Free tier: 15 requests/min)."""
+        api_key = os.getenv('GOOGLE_API_KEY')
         if not api_key:
-            logger.warning("TOGETHER_API_KEY not found")
+            logger.warning("GOOGLE_API_KEY not found")
             return None
         
         try:
-            url = "https://api.together.xyz/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            headers = {"Content-Type": "application/json"}
+            
+            # Convert messages to Gemini format
+            parts = []
+            for msg in messages:
+                role = msg['role']
+                content = msg['content']
+                if role == 'system':
+                    parts.append({"text": f"System: {content}\n\n"})
+                elif role == 'user':
+                    parts.append({"text": content})
+                elif role == 'assistant':
+                    parts.append({"text": content})
+            
             data = {
-                "model": "meta-llama/Llama-3-8b-chat-hf",  # Free model
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "temperature": 0.3
+                "contents": [{
+                    "parts": parts
+                }],
+                "generationConfig": {
+                    "maxOutputTokens": max_tokens,
+                    "temperature": 0.3
+                }
             }
             
             response = requests.post(url, headers=headers, json=data, timeout=30)
             response.raise_for_status()
             result = response.json()
-            return result['choices'][0]['message']['content'].strip()
+            
+            if 'candidates' in result and len(result['candidates']) > 0:
+                text = result['candidates'][0]['content']['parts'][0]['text']
+                return text.strip()
+            return None
             
         except Exception as e:
-            logger.error(f"Together AI API failed: {e}")
+            logger.error(f"Google Gemini API failed: {e}")
             return None
     
     @staticmethod
@@ -111,7 +128,7 @@ class LLMProvider:
     @staticmethod
     def generate_completion(messages: List[Dict], max_tokens: int = 1000) -> Tuple[Optional[str], str]:
         """
-        Try multiple providers in order: Groq -> Together AI -> Hugging Face.
+        Try multiple providers in order: Groq -> Google Gemini -> Hugging Face.
         Returns (response_text, provider_used).
         """
         # Try Groq first
@@ -130,11 +147,11 @@ class LLMProvider:
             except Exception as e:
                 logger.warning(f"Groq failed: {e}, trying fallback...")
         
-        # Try Together AI
-        response = LLMProvider.call_together_api(messages, max_tokens)
+        # Try Google Gemini
+        response = LLMProvider.call_google_gemini(messages, max_tokens)
         if response:
-            logger.info("✅ Used Together AI (fallback)")
-            return response, "Together AI"
+            logger.info("✅ Used Google Gemini (fallback)")
+            return response, "Google Gemini"
         
         # Try Hugging Face
         response = LLMProvider.call_huggingface_api(messages, max_tokens)
@@ -204,7 +221,7 @@ KEY FACTS:
         content, provider = LLMProvider.generate_completion(messages, max_tokens=1000)
         
         if not content:
-            raise Exception("All LLM providers failed. Please add at least one API key: GROQ_API_KEY, TOGETHER_API_KEY, or HUGGINGFACE_API_KEY")
+            raise Exception("All LLM providers failed. Please add at least one API key: GROQ_API_KEY, GOOGLE_API_KEY, or HUGGINGFACE_API_KEY")
         
         # Parse the response
         english_summary = ""
@@ -328,7 +345,7 @@ Please answer questions based strictly on this document."""
         answer, provider = LLMProvider.generate_completion(messages, max_tokens=500)
         
         if not answer:
-            raise Exception("All LLM providers failed. Please add at least one API key: GROQ_API_KEY, TOGETHER_API_KEY, or HUGGINGFACE_API_KEY")
+            raise Exception("All LLM providers failed. Please add at least one API key: GROQ_API_KEY, GOOGLE_API_KEY, or HUGGINGFACE_API_KEY")
         
         logger.info(f"Successfully answered question using {provider}: {question[:50]}...")
         
